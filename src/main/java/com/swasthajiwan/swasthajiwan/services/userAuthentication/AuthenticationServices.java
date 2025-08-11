@@ -65,12 +65,10 @@ public class AuthenticationServices {
             if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
                 throw new RuntimeException("Password cannot be null or empty");
             }
-            System.out.println("This--->"+request.getEmail()+request.getPassword());
 
             // Find user by email
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new RuntimeException("Invalid email or password"));
-            System.out.println(user.getPassword());
             // Check hashed password
 
             BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
