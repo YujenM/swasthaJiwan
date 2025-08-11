@@ -75,7 +75,7 @@ public class AuthenticationServices {
             if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
                 throw new RuntimeException("Invalid email or password");
             }
-
+            System.out.println("CHecking commit");
             return user;
 
         } catch (RuntimeException ex) {
