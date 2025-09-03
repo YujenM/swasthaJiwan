@@ -104,4 +104,7 @@ public class AuthenticationServices {
             throw new RuntimeException("Error logging in: " + ex.getMessage());
         }
     }
+    public User getUserById(String userId){
+        return  userRepository.findById(userId).orElseThrow(()->new RuntimeException("User not found"));
+    }
 }
