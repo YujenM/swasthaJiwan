@@ -3,6 +3,7 @@ package com.swasthajiwan.swasthajiwan.services.userAuthentication;
 import com.swasthajiwan.swasthajiwan.dto.LoginRequest;
 import com.swasthajiwan.swasthajiwan.dto.LoginResponse;
 import com.swasthajiwan.swasthajiwan.dto.UserRequest;
+import com.swasthajiwan.swasthajiwan.dto.UserResponse;
 import com.swasthajiwan.swasthajiwan.model.User;
 import com.swasthajiwan.swasthajiwan.repository.UserRepository;
 import io.jsonwebtoken.Jwts;
@@ -104,7 +105,15 @@ public class AuthenticationServices {
             throw new RuntimeException("Error logging in: " + ex.getMessage());
         }
     }
-    public User getUserById(String userId){
-        return  userRepository.findById(userId).orElseThrow(()->new RuntimeException("User not found"));
+    public UserResponse getUserById(String userId) {
+        User user=userRepository.findById(userId)
+                .orElseThrow(()-> new RuntimeException("User not found"));
+        return new UserResponse(
+          user.getId(),
+          user.getFullName(),
+          user.getEmail(),
+          user.getCreatedAt()
+        );
+
     }
 }
