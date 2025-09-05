@@ -4,15 +4,19 @@ import com.swasthajiwan.swasthajiwan.dto.LoginRequest;
 import com.swasthajiwan.swasthajiwan.dto.LoginResponse;
 import com.swasthajiwan.swasthajiwan.dto.UserRequest;
 import com.swasthajiwan.swasthajiwan.dto.UserResponse;
+import com.swasthajiwan.swasthajiwan.methods.CheckUserValidate;
 import com.swasthajiwan.swasthajiwan.model.Role;
 import com.swasthajiwan.swasthajiwan.model.User;
 import com.swasthajiwan.swasthajiwan.model.UserRole;
+import com.swasthajiwan.swasthajiwan.model.Validate;
 import com.swasthajiwan.swasthajiwan.repository.RoleRepository;
 import com.swasthajiwan.swasthajiwan.repository.UserRepository;
 import com.swasthajiwan.swasthajiwan.repository.UserRoleRepository;
+import com.swasthajiwan.swasthajiwan.repository.ValidateRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,7 +34,9 @@ public class AuthenticationServices {
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
+    private final ValidateRepository validateRepository;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private CheckUserValidate checkUserValidate;
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -40,12 +46,16 @@ public class AuthenticationServices {
 
     public AuthenticationServices(UserRepository userRepository,
                                   UserRoleRepository userRoleRepository,
-                                  RoleRepository roleRepository) {
+                                  RoleRepository roleRepository,
+                                  ValidateRepository validateRepository,
+                                  CheckUserValidate checkUserValidate) {
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
         this.roleRepository = roleRepository;
+        this.validateRepository=validateRepository;
+        this.checkUserValidate=checkUserValidate;
     }
-
+    @Transactional
     public User createUser(UserRequest request) {
         try {
             if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
@@ -69,9 +79,16 @@ public class AuthenticationServices {
             user.setFullName(request.getFullName());
             user.setEmail(request.getEmail());
             user.setPassword(request.getPassword());
-            user.setCreatedAt(LocalDateTime.now());  // ✅ semicolon fixed
+            user.setCreatedAt(LocalDateTime.now());
 
             User savedUser = userRepository.save(user);
+
+            Validate validate= new Validate();
+            validate.setUserId(userID);
+            validate.setCreatedAt(LocalDateTime.now());
+            validate.setIsValidate(true);
+            validate.setReason("Patient account");
+            validateRepository.save(validate);
 
             Role patientRole = roleRepository.findByRole(Role.RoleType.patient)
                     .orElseThrow(() -> new RuntimeException("Default role 'patient' not found in DB"));
@@ -102,7 +119,10 @@ public class AuthenticationServices {
 
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new RuntimeException("Invalid email or password"));
-
+            boolean isValidate=checkUserValidate.isValidate(user.getId());
+            if(!isValidate){
+                throw new RuntimeException("User Account is not validate");
+            }
             if(!passwordEncoder.matches(request.getPassword(),user.getPassword())){
                 throw new RuntimeException("Invalid  or Password");
             }
