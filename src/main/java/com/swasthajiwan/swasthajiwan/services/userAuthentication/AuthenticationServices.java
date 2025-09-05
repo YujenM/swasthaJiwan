@@ -24,7 +24,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-@Service
+@Service("userAuthenticationService")
 public class AuthenticationServices {
 
     private final UserRepository userRepository;
@@ -103,8 +103,8 @@ public class AuthenticationServices {
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
-            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-                throw new RuntimeException("Invalid email or password");
+            if(!passwordEncoder.matches(request.getPassword(),user.getPassword())){
+                throw new RuntimeException("Invalid  or Password");
             }
 
             Key key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));

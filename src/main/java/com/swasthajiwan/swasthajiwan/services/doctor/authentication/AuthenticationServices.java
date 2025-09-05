@@ -1,0 +1,113 @@
+package com.swasthajiwan.swasthajiwan.services.doctor.authentication;
+
+import com.swasthajiwan.swasthajiwan.dto.LoginRequest;
+import com.swasthajiwan.swasthajiwan.dto.LoginResponse;
+import com.swasthajiwan.swasthajiwan.dto.UserRequest;
+import com.swasthajiwan.swasthajiwan.model.User;
+import com.swasthajiwan.swasthajiwan.model.UserRole;
+import com.swasthajiwan.swasthajiwan.repository.RoleRepository;
+import com.swasthajiwan.swasthajiwan.repository.UserRepository;
+import com.swasthajiwan.swasthajiwan.repository.UserRoleRepository;
+import com.swasthajiwan.swasthajiwan.model.Role;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.nio.charset.StandardCharsets;
+import java.security.Key;
+import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.UUID;
+
+@Service("doctorAuthenticationService")
+public class AuthenticationServices {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthenticationServices.class);
+    private final UserRepository userRepository;
+    private final UserRoleRepository userRoleRepository;
+    private final RoleRepository roleRepository;
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    public AuthenticationServices(UserRepository userRepository, UserRoleRepository userRoleRepository, RoleRepository roleRepository) {
+        this.userRepository = userRepository;
+        this.userRoleRepository = userRoleRepository;
+        this.roleRepository = roleRepository;
+    }
+
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+
+    @Value("${jwt.expiration-ms}")
+    private long jwtExpirationMs;
+
+    public User createUser(UserRequest request) {
+        try {
+            if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+                throw new RuntimeException("Email cannot be null or empty");
+            }
+            if (request.getFullName() == null || request.getFullName().isEmpty()) {
+                throw new RuntimeException("Full name cannot be empty");
+            }
+            if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
+                throw new RuntimeException("Password cannot be empty");
+            }
+
+            userRepository.findByEmail(request.getEmail())
+                    .ifPresent(u -> { throw new RuntimeException("Email already exists"); });
+
+            String userId = "SwasthaDoctor" + UUID.randomUUID();
+            User user = new User();
+            user.setId(userId);
+            user.setFullName(request.getFullName());
+            user.setEmail(request.getEmail());
+            user.setPassword(request.getPassword());
+            user.setCreatedAt(LocalDateTime.now());
+
+            User savedUser = userRepository.save(user);
+
+            Role doctorRole = roleRepository.findByRole(Role.RoleType.doctor)
+                    .orElseThrow(() -> new RuntimeException("Default role `doctor` not found in DB"));
+
+            UserRole userRole = new UserRole();
+            userRole.setUserId(savedUser.getId());
+            userRole.setRoleId(doctorRole.getId());
+            userRole.setCreatedAt(LocalDateTime.now());
+
+            userRoleRepository.save(userRole);
+
+            return savedUser;
+
+        } catch (RuntimeException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new RuntimeException("Error creating user: " + ex.getMessage());
+        }
+    }
+
+    public LoginResponse login(LoginRequest request){
+        if(request.getEmail()==null || request.getEmail().trim().isEmpty()){
+            throw  new RuntimeException("Email cannot be null or empty");
+        }
+        if(request.getPassword()==null || request.getPassword().trim().isEmpty()){
+            throw new RuntimeException("password cannot be null or empty");
+        }
+        User user=userRepository.findByEmail(request.getEmail())
+                .orElseThrow(()->new RuntimeException("Invalid email or "));
+        if(!passwordEncoder.matches(request.getPassword(),user.getPassword())){
+            throw new RuntimeException("Invalid  or Password");
+        }
+        Key key= Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        String token = Jwts.builder()
+                .setSubject(user.getId())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis()+jwtExpirationMs))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+        return new LoginResponse(user,token);
+    }
+}

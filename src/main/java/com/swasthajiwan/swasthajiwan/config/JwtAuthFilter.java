@@ -17,13 +17,20 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Collections;
+import java.util.List;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final String jwtSecret = System.getProperty("JWT_SECRET");
     private final long jwtExpirationMs = Long.parseLong(System.getProperty("JWT_EXPIRATION_MS"));
-
+    private static final List<String> EXCLUDED_PATHS = List.of(
+            "/patient/api/auth/login",
+            "/patient/api/auth/register",
+            "/patient/api/auth/forgot-password" ,
+            "/doctor/api/auth/register",
+            "/doctor/api/auth/login"
+    );
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -31,8 +38,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // Skip JWT validation for public endpoints
-        if (path.startsWith("/patient/api/auth/login") || path.startsWith("/patient/api/auth/register")) {
+        boolean isExcluded = EXCLUDED_PATHS.stream().anyMatch(path::startsWith);
+        if (isExcluded) {
             filterChain.doFilter(request, response); // continue without JWT
             return;
         }
