@@ -3,12 +3,15 @@ package com.swasthajiwan.swasthajiwan.services.doctor.authentication;
 import com.swasthajiwan.swasthajiwan.dto.LoginRequest;
 import com.swasthajiwan.swasthajiwan.dto.LoginResponse;
 import com.swasthajiwan.swasthajiwan.dto.UserRequest;
+import com.swasthajiwan.swasthajiwan.methods.CheckUserValidate;
 import com.swasthajiwan.swasthajiwan.model.User;
 import com.swasthajiwan.swasthajiwan.model.UserRole;
+import com.swasthajiwan.swasthajiwan.model.Validate;
 import com.swasthajiwan.swasthajiwan.repository.RoleRepository;
 import com.swasthajiwan.swasthajiwan.repository.UserRepository;
 import com.swasthajiwan.swasthajiwan.repository.UserRoleRepository;
 import com.swasthajiwan.swasthajiwan.model.Role;
+import com.swasthajiwan.swasthajiwan.repository.ValidateRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -31,12 +34,17 @@ public class AuthenticationServices {
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
+    private final ValidateRepository validateRepository;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final CheckUserValidate checkUserValidate;
 
-    public AuthenticationServices(UserRepository userRepository, UserRoleRepository userRoleRepository, RoleRepository roleRepository) {
+    public AuthenticationServices(UserRepository userRepository, UserRoleRepository userRoleRepository, RoleRepository roleRepository, ValidateRepository validateRepository,CheckUserValidate checkUserValidate) {
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
         this.roleRepository = roleRepository;
+        this.validateRepository=validateRepository;
+        this.checkUserValidate=checkUserValidate;
+
     }
 
     @Value("${jwt.secret}")
@@ -69,6 +77,14 @@ public class AuthenticationServices {
             user.setCreatedAt(LocalDateTime.now());
 
             User savedUser = userRepository.save(user);
+            Validate validate= new Validate();
+            validate.setUserId(userId);
+            validate.setCreatedAt(LocalDateTime.now());
+            validate.setIsValidate(false);
+            validate.setReason("Require Admin approval");
+
+            validateRepository.save(validate);
+
 
             Role doctorRole = roleRepository.findByRole(Role.RoleType.doctor)
                     .orElseThrow(() -> new RuntimeException("Default role `doctor` not found in DB"));
@@ -100,6 +116,10 @@ public class AuthenticationServices {
                 .orElseThrow(()->new RuntimeException("Invalid email or "));
         if(!passwordEncoder.matches(request.getPassword(),user.getPassword())){
             throw new RuntimeException("Invalid  or Password");
+        }
+        boolean isValidate= checkUserValidate.isValidate(user.getId());
+        if(!isValidate){
+            throw  new RuntimeException("Doctor is not validate");
         }
         Key key= Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         String token = Jwts.builder()
