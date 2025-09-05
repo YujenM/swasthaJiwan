@@ -108,6 +108,14 @@ public class AuthenticationServices {
                 .setExpiration(new Date(System.currentTimeMillis()+jwtExpirationMs))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
+
+        String role=userRoleRepository.findByUserId(user.getId()).stream()
+                .map(userRole -> userRole.getRole().getRole().name())
+                .findFirst()
+                .orElseThrow(()->new RuntimeException("Role not assigned to user"));
+        if(role!="doctor"){
+            throw  new RuntimeException("Only doctor can access the portal");
+        }
         return new LoginResponse(user,token);
     }
 }
