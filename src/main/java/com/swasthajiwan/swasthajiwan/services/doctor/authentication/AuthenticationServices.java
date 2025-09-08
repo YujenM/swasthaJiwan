@@ -53,7 +53,7 @@ public class AuthenticationServices {
     @Value("${jwt.expiration-ms}")
     private long jwtExpirationMs;
 
-    public User createUser(UserRequest request) {
+    public LoginResponse createUser(UserRequest request) {
         try {
             if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
                 throw new RuntimeException("Email cannot be null or empty");
@@ -96,7 +96,16 @@ public class AuthenticationServices {
 
             userRoleRepository.save(userRole);
 
-            return savedUser;
+            Key key=Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+            String token=Jwts.builder()
+                    .setSubject(savedUser.getId())
+                    .claim("role","doctor")
+                    .claim("verified",false)
+                    .setIssuedAt(new Date())
+                    .setExpiration(new Date(System.currentTimeMillis()+86400000))
+                    .signWith(key,SignatureAlgorithm.HS256)
+                    .compact();
+            return new  LoginResponse(savedUser,token);
 
         } catch (RuntimeException ex) {
             throw ex;

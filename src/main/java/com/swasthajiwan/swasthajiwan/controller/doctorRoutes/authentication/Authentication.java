@@ -27,9 +27,9 @@ public class Authentication {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody UserRequest request) {
         try {
-            User user = authenticationServices.createUser(request);
-            user.setPassword(null); // remove password before sending response
-            return ResponseEntity.status(HttpStatus.CREATED).body(user);
+            LoginResponse response = authenticationServices.createUser(request);
+            response.getUser().setPassword(null); // remove password before sending response
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
         } catch (RuntimeException ex) {
             return ResponseEntity
