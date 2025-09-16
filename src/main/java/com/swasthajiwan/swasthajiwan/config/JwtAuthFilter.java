@@ -29,7 +29,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             "/patient/api/auth/register",
             "/patient/api/auth/forgot-password" ,
             "/doctor/api/auth/register",
-            "/doctor/api/auth/login"
+            "/doctor/api/auth/login",
+            "/api/admin/login"
     );
     @Override
     protected void doFilterInternal(HttpServletRequest request,

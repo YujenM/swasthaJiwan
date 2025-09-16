@@ -1,5 +1,6 @@
 package com.swasthajiwan.swasthajiwan.methods;
 
+import com.swasthajiwan.swasthajiwan.model.UserRole;
 import com.swasthajiwan.swasthajiwan.model.Validate;
 import com.swasthajiwan.swasthajiwan.repository.UserRoleRepository;
 import com.swasthajiwan.swasthajiwan.repository.ValidateRepository;
@@ -21,5 +22,11 @@ public class CheckUserValidate {
         return validateRepository.findByUserId(userId)
                 .map(Validate::getIsValidate)
                 .orElse(Boolean.FALSE);
+    }
+    public boolean isAdmin(String userId){
+        return userRoleRepository.findByUserId(userId).stream()
+                .map(UserRole::getRole)
+                .filter(role->role!=null)
+                .anyMatch(role->"Admin".equalsIgnoreCase(role.getRole().name()));
     }
 }

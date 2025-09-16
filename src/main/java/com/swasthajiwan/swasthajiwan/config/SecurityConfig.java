@@ -21,7 +21,8 @@ public class SecurityConfig {
             "/patient/api/auth/forgot-password" ,
             "/doctor/api/auth/register",
             "/doctor/api/auth/register",
-            "/doctor/api/auth/login"
+            "/doctor/api/auth/login",
+            "/api/admin/login"
     );
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
