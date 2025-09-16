@@ -21,6 +21,17 @@ public class Certificate {
     @Column(name = "name", length = 100)
     private String name;
 
+    @Column(name="university", length = 100)
+    private String university;
+
+    public String getUniversity() {
+        return university;
+    }
+
+    public void setUniversity(String university) {
+        this.university = university;
+    }
+
     @Column(name = "path",length = 500)
     private String path;
 
