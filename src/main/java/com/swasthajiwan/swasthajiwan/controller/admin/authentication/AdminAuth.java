@@ -1,5 +1,6 @@
 package com.swasthajiwan.swasthajiwan.controller.admin.authentication;
 
+import com.swasthajiwan.swasthajiwan.dto.AdminLoginResponse;
 import com.swasthajiwan.swasthajiwan.dto.LoginRequest;
 import com.swasthajiwan.swasthajiwan.dto.LoginResponse;
 import com.swasthajiwan.swasthajiwan.services.admin.adminAuthenticationService.AdminAuthService;
@@ -24,7 +25,7 @@ public class AdminAuth {
     @PostMapping("/login")
     public ResponseEntity<?>register(@RequestBody LoginRequest request){
         try{
-            LoginResponse response=adminAuthService.adminLogin(request);
+            AdminLoginResponse response=adminAuthService.adminLogin(request);
             return ResponseEntity.ok(response);
         }catch (RuntimeException ex){
             return ResponseEntity

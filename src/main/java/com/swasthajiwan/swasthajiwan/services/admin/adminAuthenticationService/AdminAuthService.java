@@ -1,9 +1,12 @@
 package com.swasthajiwan.swasthajiwan.services.admin.adminAuthenticationService;
 
+import com.swasthajiwan.swasthajiwan.dto.AdminLoginResponse;
 import com.swasthajiwan.swasthajiwan.dto.LoginRequest;
 import com.swasthajiwan.swasthajiwan.dto.LoginResponse;
 import com.swasthajiwan.swasthajiwan.methods.CheckUserValidate;
+import com.swasthajiwan.swasthajiwan.model.Admin;
 import com.swasthajiwan.swasthajiwan.model.User;
+import com.swasthajiwan.swasthajiwan.repository.AdminRepository;
 import com.swasthajiwan.swasthajiwan.repository.UserRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -17,8 +20,7 @@ import java.security.Key;
 import java.util.Date;
 @Service
 public class AdminAuthService {
-    private final UserRepository userRepository;
-    private final CheckUserValidate checkUserValidate;
+    private final AdminRepository adminRepository;
     private final BCryptPasswordEncoder passwordEncoder=new BCryptPasswordEncoder();
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -26,12 +28,10 @@ public class AdminAuthService {
     @Value("${jwt.expiration-ms}")
     private long jwtExpirationMs;
 
-    public AdminAuthService(UserRepository userRepository,
-                            CheckUserValidate checkUserValidate){
-        this.userRepository=userRepository;
-        this.checkUserValidate=checkUserValidate;
+    public AdminAuthService(AdminRepository adminRepository){
+        this.adminRepository=adminRepository;
     }
-    public LoginResponse adminLogin(LoginRequest request){
+    public AdminLoginResponse adminLogin(LoginRequest request){
         if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
             throw new RuntimeException("Email cannot be null or empty");
         }
@@ -40,27 +40,22 @@ public class AdminAuthService {
             throw new RuntimeException("Password cannot be null or empty");
         }
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        Admin admin=adminRepository.findByEmail(request.getEmail())
+                .orElseThrow(()->new RuntimeException("Admin not found"));
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(request.getPassword(), admin.getPassword())) {
             throw new RuntimeException("Invalid password");
         }
 
-
-//        check if user is admin
-        if(!checkUserValidate.isAdmin(user.getId())){
-            throw new RuntimeException("User is not authorized");
-        }
         Key key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         String token = Jwts.builder()
-                .setSubject(user.getId())
+                .setSubject(admin.getId())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
 
-        return new LoginResponse(user,token);
+        return new AdminLoginResponse(admin,token);
 
 
 

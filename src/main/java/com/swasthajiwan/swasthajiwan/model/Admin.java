@@ -14,13 +14,13 @@ public class Admin {
     @Column(name = "id",unique = true,nullable = false,length = 50)
     private String id;
 
-    @Column(name = "email",length = 50)
+    @Column(name = "email",length = 100)
     private String email;
 
-    @Column(name = "name",length = 50)
+    @Column(name = "name",length = 100)
     private String name;
 
-    @Column(name = "password",length = 50)
+    @Column(name = "password",length = 100)
     private String password;
 
     @Column(name = "createdAt")
